@@ -346,6 +346,12 @@
                 "description": "Toggle the display of expected type."
             },
             {
+                "command": "lean4.infoView.showComment",
+                "category": "Lean 4",
+                "title": "Infoview: Show Comment at Cursor",
+                "description": "Shows the comment at the current cursor position in the Infoview."
+            },
+            {
                 "command": "lean4.infoview.goToDefinition",
                 "category": "Lean 4",
                 "title": "Go to Definition",
@@ -833,6 +839,10 @@
                 },
                 {
                     "command": "lean4.infoView.toggleExpectedType",
+                    "when": "lean4.isLeanFeatureSetActive"
+                },
+                {
+                    "command": "lean4.infoView.showComment",
                     "when": "lean4.isLeanFeatureSetActive"
                 },
                 {
