@@ -93,6 +93,75 @@ class RpcSessionAtPos implements Disposable {
     }
 }
 
+export function extractCommentString(editor: TextEditor, position: Position): string {
+    const lineText = editor.document.lineAt(position.line).text;
+    let commentText = '';
+
+    if (lineText.trim().startsWith('--')) {
+        commentText = lineText.trim().substring(2).trim();
+    } else {
+        const lineTrimmed = lineText.trim();
+        if (lineTrimmed.startsWith('/-') && lineTrimmed.endsWith('-/')) {
+            // Single line block comment: /- ... -/
+            commentText = lineTrimmed.substring(2, lineTrimmed.length - 2).trim();
+        } else {
+            // Check for multi-line block comments
+            let currentLineNum = position.line;
+            let blockCommentStartLine = -1;
+            let blockCommentEndLine = -1;
+
+            // Search backwards for /-
+            for (let i = currentLineNum; i >= 0; i--) {
+                const line = editor.document.lineAt(i).text.trim();
+                if (line.includes('/-')) {
+                    blockCommentStartLine = i;
+                    if (line.substring(line.indexOf('/-')).includes('-/')) {
+                        if (i === currentLineNum && line.startsWith('/-') && line.endsWith('-/')) {
+                        } else if (i === currentLineNum && line.includes('/-')) {
+                        }
+                    }
+                    break;
+                }
+                if (line.includes('-/')) {
+                    break;
+                }
+            }
+
+            if (blockCommentStartLine !== -1) {
+                // Search forwards for -/ from the start of the block comment
+                for (let i = blockCommentStartLine; i < editor.document.lineCount; i++) {
+                    const line = editor.document.lineAt(i).text.trim();
+                    if (line.includes('-/')) {
+                        blockCommentEndLine = i;
+                        break;
+                    }
+                }
+            }
+
+            if (blockCommentStartLine !== -1 && blockCommentEndLine !== -1 &&
+                currentLineNum >= blockCommentStartLine && currentLineNum <= blockCommentEndLine) {
+                let fullComment = "";
+                for (let i = blockCommentStartLine; i <= blockCommentEndLine; i++) {
+                    let lineContent = editor.document.lineAt(i).text;
+                    if (i === blockCommentStartLine && lineContent.includes('/-')) {
+                        lineContent = lineContent.substring(lineContent.indexOf('/-') + 2);
+                    }
+                    if (i === blockCommentEndLine && lineContent.includes('-/')) {
+                        lineContent = lineContent.substring(0, lineContent.lastIndexOf('-/'));
+                    }
+                    fullComment += lineContent + (i < blockCommentEndLine ? '\n' : '');
+                }
+                commentText = fullComment.trim();
+            } else if (lineTrimmed.startsWith('/-')) { // Fallback for unterminated block comment start
+                commentText = lineTrimmed.substring(2).trim();
+            } else if (lineTrimmed.endsWith('-/')) { // Fallback for unterminated block comment end (less likely useful)
+                 commentText = lineTrimmed.substring(0, lineTrimmed.length - 2).trim();
+            }
+        }
+    }
+    return commentText;
+}
+
 export class InfoProvider implements Disposable {
     /** Instance of the panel, if it is open. Otherwise `undefined`. */
     private webviewPanel?: WebviewPanel & { rpc: Rpc; api: InfoviewApi }
@@ -539,7 +608,26 @@ export class InfoProvider implements Disposable {
             commands.registerCommand('lean4.infoview.saveSettings', args =>
                 this.webviewPanel?.api.clickedContextMenu({ entry: 'saveSettings', id: args.saveSettingsId }),
             ),
+            commands.registerCommand('lean4.infoView.showComment', () => this.showComment()),
         )
+    }
+
+    private async showComment() {
+        const activeLeanEditor = lean.activeLeanEditor;
+        if (!activeLeanEditor) {
+            return;
+        }
+        const editor = activeLeanEditor.editor;
+        if (editor.document.languageId !== 'lean4') {
+            return;
+        }
+
+        const position = editor.selection.active;
+        const commentText = extractCommentString(editor, position);
+
+        if (this.webviewPanel) {
+            (this.webviewPanel.api as any).showComment(commentText);
+        }
     }
 
     private async onClientRestarted(client: LeanClient) {

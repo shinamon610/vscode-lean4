@@ -129,6 +129,7 @@ export function renderInfoview(editorApi: EditorApi, uiElement: HTMLElement): In
         runTestScript: new EventEmitter(),
         requestedAction: new EventEmitter(),
         clickedContextMenu: new EventEmitter(),
+    showComment: new EventEmitter(),
     }
 
     // Challenge: write a type-correct fn from `Eventify<T>` to `T` without using `any`
@@ -158,6 +159,7 @@ export function renderInfoview(editorApi: EditorApi, uiElement: HTMLElement): In
         // eslint-disable-next-line @typescript-eslint/no-implied-eval
         runTestScript: async script => new Function(script)(),
         getInfoviewHtml: async () => document.body.innerHTML,
+    showComment: comment => editorEvents.showComment.fire(comment),
     }
 
     const ec = new EditorConnection(editorApi, editorEvents)

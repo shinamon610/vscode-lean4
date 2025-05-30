@@ -214,6 +214,9 @@ export interface InfoviewApi {
      * in particular to inspect the page contents and check if the UI is in a correct state.
      */
     getInfoviewHtml(): Promise<string>
+
+    /** Show a comment in the infoview. */
+    showComment(comment: string): void
 }
 
 export interface ServerStoppedReason {

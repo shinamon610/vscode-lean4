@@ -33,6 +33,7 @@ import {
     useEvent,
     usePausableState,
 } from './util'
+import { Markdown } from './interactiveCode'
 
 type InfoStatus = 'updating' | 'error' | 'ready'
 type InfoKind = 'cursor' | 'pin'
@@ -472,6 +473,15 @@ function useIsProcessingAt(p: DocumentPosition): boolean {
 
 function InfoAux(props: InfoProps) {
     const config = React.useContext(ConfigContext)
+    const editorContext = React.useContext(EditorContext)
+    const [displayedComment, setDisplayedComment] = React.useState<string | null>(null);
+
+    React.useEffect(() => {
+        const disposable = editorContext.events.showComment.on(comment => {
+            setDisplayedComment(comment);
+        });
+        return () => disposable.dispose();
+    }, [editorContext]);
 
     const pos = props.pos
     const rpcSess = useRpcSessionAtPos(pos)
@@ -649,5 +659,17 @@ function InfoAux(props: InfoProps) {
         }
     }, [state, triggerUpdate])
 
-    return <InfoDisplay kind={props.kind} onPin={props.onPin} {...displayProps} />
+    return (
+        <>
+            {displayedComment && displayedComment.trim() !== "" && (
+                <details open className="mv2">
+                    <summary className="mv2 pointer">Comment View</summary>
+                    <div className="ml1">
+                        <Markdown content={displayedComment} />
+                    </div>
+                </details>
+            )}
+            <InfoDisplay kind={props.kind} onPin={props.onPin} {...displayProps} />
+        </>
+    );
 }
